@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vue Dynamic Free Placement Gallery</title>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
+      margin: 0;
+      padding: 0;
+    }
+    .gallery {
+      position: relative;
+      width: 100vw;
+      min-height: 100vh;
+      overflow: auto;
+    }
+    .card {
+      position: absolute;
+      width: 150px;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      padding: 15px;
+      text-align: center;
+      cursor: move;
+    }
+    .card img {
+      max-width: 100%;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="app">
+  <div class="gallery">
+    <div v-for="(item, index) in items" :key="index" class="card" :style="{ top: item.top + 'px', left: item.left + 'px' }" @mousedown="startDrag(index, $event)">
+      <img v-if="isImage(item.content)" :src="item.content" alt="Gallery image">
+      <p v-else>{{ item.content }}</p>
+    </div>
+  </div>
+</div>
+
+<script>
+new Vue({
+  el: '#app',
+  data() {
+    return {
+      items: [],  // Start with an empty array
+      dragInfo: {
+        index: null,
+        offsetX: 0,
+        offsetY: 0,
+      }
+    };
+  },
+  created() {
+    this.items = this.initializeItems();  // Populate items from the URL during component creation
+  },
+  methods: {
+    initializeItems() {
+      // Use window.location.href instead of pathname to handle local file URLs
+      const url = window.location.href;
+      const params = url.split('?').slice(1);
+      const combinedItems = params.map(param => decodeURIComponent(param.replace(/_/g, ' ')));
+
+      const columns = 4;
+      const cardWidth = 150;
+      const cardHeight = 200;
+      const margin = 20;
+
+      return combinedItems.map((content, index) => {
+        const row = Math.floor(index / columns);
+        const col = index % columns;
+        return {
+          content: content,
+          top: row * (cardHeight + margin),
+          left: col * (cardWidth + margin)
+        };
+      });
+    },
+    isImage(item) {
+      return /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(item);
+    },
+    startDrag(index, event) {
+      this.dragInfo.index = index;
+      this.dragInfo.offsetX = event.clientX - this.items[index].left;
+      this.dragInfo.offsetY = event.clientY - this.items[index].top;
+
+      document.addEventListener('mousemove', this.onDrag);
+      document.addEventListener('mouseup', this.endDrag);
+    },
+    onDrag(event) {
+      if (this.dragInfo.index !== null) {
+        const item = this.items[this.dragInfo.index];
+        item.left = event.clientX - this.dragInfo.offsetX;
+        item.top = event.clientY - this.dragInfo.offsetY;
+
+        this.updateGalleryHeight();
+      }
+    },
+    endDrag() {
+      this.dragInfo.index = null;
+      document.removeEventListener('mousemove', this.onDrag);
+      document.removeEventListener('mouseup', this.endDrag);
+    },
+    updateGalleryHeight() {
+      const maxTop = Math.max(...this.items.map(item => item.top));
+      const gallery = document.querySelector('.gallery');
+      gallery.style.height = (maxTop + 220) + 'px'; // Add some padding
+    }
+  }
+});
+
+</script>
+
+</body>
+</html>
